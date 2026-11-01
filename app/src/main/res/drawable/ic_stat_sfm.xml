@@ -1,0 +1,11 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Rounded play badge: white silhouette for the status bar -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M7,3h10a4,4 0,0 1,4 4v10a4,4 0,0 1,-4 4h-10a4,4 0,0 1,-4 -4v-10a4,4 0,0 1,4 -4zM10,8.2v7.6c0,0.6 0.65,0.95 1.15,0.63l5.9,-3.8c0.46,-0.3 0.46,-0.97 0,-1.26l-5.9,-3.8c-0.5,-0.32 -1.15,0.03 -1.15,0.63z" />
+</vector>

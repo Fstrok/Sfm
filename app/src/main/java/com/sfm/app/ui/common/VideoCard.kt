@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.outlined.StarOutline
+import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -122,15 +123,23 @@ fun VideoCard(
                 Box(Modifier.align(Alignment.BottomStart).fillMaxWidth(p).height(3.dp).background(Sfm.Hot))
             }
         }
-        Row(Modifier.padding(start = 4.dp, top = 6.dp), verticalAlignment = Alignment.Top) {
-            Column(Modifier.weight(1f)) {
-                Text(v.title, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis, color = Sfm.Text)
-                val meta = listOfNotNull(
-                    v.cats.lastOrNull()?.name ?: v.artist,
-                    v.views?.let { formatCount(it) + " просм." },
-                    timeAgo(v.date).ifEmpty { null },
-                ).joinToString(" · ")
-                if (meta.isNotEmpty()) Text(meta, style = MaterialTheme.typography.bodySmall, color = Sfm.TextDim, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(
+            v.title, Modifier.padding(start = 2.dp, top = 8.dp, end = 2.dp),
+            style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis, color = Sfm.Text,
+        )
+        Row(Modifier.padding(start = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f).padding(top = 2.dp)) {
+                (v.cats.lastOrNull()?.name ?: v.artist)?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = Sfm.TextDim, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                val stats = listOfNotNull(v.views?.let(::formatCount), timeAgo(v.date).removeSuffix(" назад").ifEmpty { null }).joinToString(" · ")
+                if (stats.isNotEmpty()) Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (v.views != null) {
+                        Icon(Icons.Outlined.Visibility, "просмотры", Modifier.size(13.dp), tint = Sfm.TextDim)
+                        Spacer(Modifier.width(4.dp))
+                    }
+                    Text(stats, style = MaterialTheme.typography.bodySmall, color = Sfm.TextDim, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
             }
             DownloadButton(download, isDownloaded, onDownload)
         }

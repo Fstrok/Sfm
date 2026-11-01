@@ -41,7 +41,7 @@ import com.sfm.app.ui.LocalApp
 import com.sfm.app.ui.theme.Sfm
 import kotlinx.coroutines.flow.distinctUntilChanged
 
-fun gridCells(columns: Int): GridCells = if (columns <= 0) GridCells.Adaptive(168.dp) else GridCells.Fixed(columns)
+fun gridCells(columns: Int): GridCells = if (columns <= 0) GridCells.Adaptive(160.dp) else GridCells.Fixed(columns)
 
 /**
  * Paged feed grid: skeletons on first load, pull-to-refresh, endless loading, error with retry,
@@ -66,7 +66,8 @@ fun FeedGrid(
 
     LaunchedEffect(feed) { feed.ensure() }
     DisposableEffect(feed) { onDispose { feed.scrollIndex = grid.firstVisibleItemIndex; feed.scrollOffset = grid.firstVisibleItemScrollOffset } }
-    LaunchedEffect(grid, visible.size) {
+    // Re-checked on every change of the raw list or load state: a page filtered out locally keeps paging going.
+    LaunchedEffect(grid, visible.size, items.size, state) {
         snapshotFlow { grid.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }
             .distinctUntilChanged()
             .collect { last -> if (last >= grid.layoutInfo.totalItemsCount - 8 && feed.canLoadMore) feed.loadMore() }
@@ -126,6 +127,7 @@ fun VideoGridContent(
     val lib by app.library.data.collectAsState()
     val dl by app.dlProgress.collectAsState()
     var menuFor by remember { mutableStateOf<Video?>(null) }
+    OnTabReselect { grid.scrollToTop() }
     LazyVerticalGrid(
         gridCells(columns),
         modifier.fillMaxSize(),
