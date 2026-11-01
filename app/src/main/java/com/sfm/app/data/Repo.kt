@@ -8,6 +8,9 @@ import java.util.concurrent.ConcurrentHashMap
 
 data class Page(val items: List<Video>, val hasMore: Boolean)
 
+/** Id lists joined with an encoded comma: the site's firewall (Sucuri) blocks plain "1,2,…" lists of 12+ ids. */
+fun idList(ids: Iterable<Any>): String = ids.joinToString("%2C")
+
 /** All site access. Every loaded video goes through [remember] so fields from different sources merge. */
 class Repo(private val net: Net, val catalog: Catalog) {
     private val known = ConcurrentHashMap<Long, Video>()
@@ -25,10 +28,10 @@ class Repo(private val net: Net, val catalog: Catalog) {
     }
 
     suspend fun feed(src: FeedSource, page: Int): Page {
-        val dur = src.duration.tagIds.joinToString(",")
+        val dur = idList(src.duration.tagIds)
         return when (src.kind) {
             FeedKind.LATEST -> rest("orderby=date" + (if (dur.isNotEmpty()) "&tags=$dur" else ""), page)
-            FeedKind.LONG -> rest("orderby=date&tags=" + (src.duration.takeIf { it.minSec >= 60 } ?: Duration.M1).tagIds.joinToString(","), page)
+            FeedKind.LONG -> rest("orderby=date&tags=" + idList((src.duration.takeIf { it.minSec >= 60 } ?: Duration.M1).tagIds), page)
             FeedKind.TRENDING -> html(SITE, "?filter-by=trending", page)
             FeedKind.HOT -> html(SITE, "?filter-by=hot", page)
             FeedKind.TOP -> html(SITE, "?filter-by=popular", page)
@@ -40,8 +43,8 @@ class Repo(private val net: Net, val catalog: Catalog) {
             FeedKind.TERM_TOP -> html(src.term!!.link.ifBlank { SITE }, "?order=most_views", page)
             FeedKind.SEARCH -> rest("search=" + URLEncoder.encode(src.query.orEmpty(), "UTF-8") + (if (dur.isNotEmpty()) "&tags=$dur" else ""), page)
             FeedKind.SUBS -> {
-                val cats = src.terms.filter { it.isCategory }.joinToString(",") { it.id.toString() }
-                val tags = src.terms.filter { !it.isCategory }.joinToString(",") { it.id.toString() }
+                val cats = idList(src.terms.filter { it.isCategory }.map { it.id })
+                val tags = idList(src.terms.filter { !it.isCategory }.map { it.id })
                 if (cats.isEmpty() && tags.isEmpty()) Page(emptyList(), false)
                 else rest(buildString {
                     append("orderby=date")
@@ -74,7 +77,7 @@ class Repo(private val net: Net, val catalog: Catalog) {
 
     private suspend fun mediaThumbs(ids: List<Long>): Map<Long, String> = coroutineScope {
         ids.distinct().chunked(100).map { chunk ->
-            async { runCatching { Parser.media(net.get("${api}media?include=${chunk.joinToString(",")}&per_page=100&_fields=id,source_url,media_details", json = true).body) }.getOrDefault(emptyMap()) }
+            async { runCatching { Parser.media(net.get("${api}media?include=${idList(chunk)}&per_page=100&_fields=id,source_url,media_details", json = true).body) }.getOrDefault(emptyMap()) }
         }.awaitAll().fold(emptyMap()) { a, b -> a + b }
     }
 
@@ -101,7 +104,7 @@ class Repo(private val net: Net, val catalog: Catalog) {
         if (need.isEmpty()) return items
         runCatching {
             need.chunked(100).forEach { chunk ->
-                val r = net.get("${api}posts?include=${chunk.joinToString(",")}&per_page=100&_fields=$fields", json = true)
+                val r = net.get("${api}posts?include=${idList(chunk)}&per_page=100&_fields=$fields", json = true)
                 Parser.restPosts(r.body).forEach { remember(it.video) }
             }
         }
@@ -153,7 +156,7 @@ class Repo(private val net: Net, val catalog: Catalog) {
         if (local.isNotEmpty()) return local.distinctBy { it.id }.filter { it.id !in Duration.TAG_IDS }
         if (v.tagIds.isEmpty()) return emptyList()
         return runCatching {
-            Parser.terms(net.get("${api}tags?include=${v.tagIds.joinToString(",")}&per_page=100&_fields=id,name,slug,count,link,parent", json = true).body) { TermType.TAG }
+            Parser.terms(net.get("${api}tags?include=${idList(v.tagIds)}&per_page=100&_fields=id,name,slug,count,link,parent", json = true).body) { TermType.TAG }
         }.getOrDefault(emptyList()).filter { it.id !in Duration.TAG_IDS }
     }
 
