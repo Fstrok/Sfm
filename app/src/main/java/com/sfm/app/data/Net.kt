@@ -49,6 +49,7 @@ class Net(cacheDir: File?) {
                 resp.use {
                     val body = withContext(Dispatchers.IO) { it.body?.string().orEmpty() }
                     if (it.code in 500..599) throw SiteException("сайт ответил ${it.code}", it.code)
+                    if (it.code == 403 && body.contains("Sucuri", true)) throw SiteException("Защита сайта отклонила запрос, попробуйте позже", 403)
                     return Resp(it.code, body, it.headers, it.request.url.toString())
                 }
             } catch (e: IOException) {
