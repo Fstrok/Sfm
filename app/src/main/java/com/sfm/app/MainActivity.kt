@@ -14,6 +14,8 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import com.sfm.app.data.SITE
+import com.sfm.app.data.SubsSync
+import com.sfm.app.ui.Tab
 import com.sfm.app.data.Term
 import com.sfm.app.data.TermType
 import com.sfm.app.player.PlayerHooks
@@ -57,6 +59,11 @@ class MainActivity : FragmentActivity() {
             }
         }
         handleIntent(intent)
+        if (savedInstanceState == null) lifecycleScope.launch {
+            graph.library.loaded.first { it }
+            SubsSync.schedule(applicationContext, graph.library.settings.subsCheckHours)
+            if (graph.library.value.subs.isNotEmpty()) runCatching { SubsSync.refreshBadge(app) }
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -66,6 +73,11 @@ class MainActivity : FragmentActivity() {
 
     /** Site links (VIEW) and shared text (SEND): post → player, /category|/tag → feed. */
     private fun handleIntent(intent: Intent?) {
+        if (intent?.getStringExtra(SubsSync.EXTRA_TAB) == Tab.SUBS.name) {
+            app.openTab(Tab.SUBS)
+            intent.removeExtra(SubsSync.EXTRA_TAB)
+            return
+        }
         val url = when (intent?.action) {
             Intent.ACTION_VIEW -> intent.dataString
             Intent.ACTION_SEND -> intent.getStringExtra(Intent.EXTRA_TEXT)?.let { Regex("""https?://(?:www\.)?sfmcompile\.club/\S*""").find(it)?.value }
